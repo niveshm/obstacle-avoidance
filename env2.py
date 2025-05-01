@@ -15,7 +15,8 @@ class DynamicObstacleEnv(gym.Env):
                  a_max: float = 3.0,
                  v_max: float = 3.0,
                  robot_radius: float = 0.5,
-                 obstacle_radius: float = 1):
+                 obstacle_radius: float = 1,
+                 Th: float = 10.0):
         super(DynamicObstacleEnv, self).__init__()
         
         # Environment parameters
@@ -24,7 +25,7 @@ class DynamicObstacleEnv(gym.Env):
         self.dt = dt  # time step
         self.a_max = a_max  # maximum acceleration (m/s^2)
         self.v_max = v_max  # maximum velocity (m/s)
-        self.Th = 10  # time horizon for VO (s)
+        self.Th = Th  # time horizon for VO (s)
         self.robot_radius = robot_radius
         self.obstacle_radius = [np.random.uniform(0.1, obstacle_radius) for _ in range(num_obstacles)]
         
@@ -84,24 +85,26 @@ class DynamicObstacleEnv(gym.Env):
         
         return self._get_obs()
     
-    def set_observation(self, obs: np.ndarray):
+    def set_observation(self, obs: np.ndarray, obstacle_radius: Optional[np.ndarray]):
         """Set the observation of the environment"""
         self.robot_pos = obs[:2]
         self.robot_vel = obs[2:4]
         self.goal_pos = obs[4:6]
         self.obstacles_pos = obs[6:6 + 2 * self.num_obstacles].reshape(self.num_obstacles, 2)
         self.obstacles_vel = obs[6 + 2 * self.num_obstacles:].reshape(self.num_obstacles, 2)
+        self.obstacle_radius = obstacle_radius
 
     def _get_obs(self) -> np.ndarray:
         """Get current observation"""
+        # print(self.robot_pos.shape, self.robot_vel.shape, self.goal_pos.shape, self.obstacles_pos.shape, self.obstacles_vel.shape)
         obs = np.concatenate([
-            self.robot_pos,
-            self.robot_vel,
-            self.goal_pos,
-            self.obstacles_pos.flatten(),
-            self.obstacles_vel.flatten()
+            self.robot_pos, # 2*1
+            self.robot_vel, #2*1
+            self.goal_pos, # 2*1
+            self.obstacles_pos.flatten(), # 2*num_obstacles
+            self.obstacles_vel.flatten() # 2*num_obstacles
         ])
-        return obs
+        return obs, self.obstacle_radius
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, Dict]:
         """Execute one time step"""
@@ -168,9 +171,9 @@ class DynamicObstacleEnv(gym.Env):
         """Check if the robot has reached the goal"""
         return np.linalg.norm(self.robot_pos - self.goal_pos) < self.robot_radius
 
-    def render_obs(self, obs: np.ndarray):
-        for i in range(obs.shape[0]):
-            self.set_observation(obs[i])
+    def render_obs(self, obs):
+        for i in range(len(obs)):
+            self.set_observation(*obs[i])
             self.render()
 
     def render(self, feasible_vels=None, mode: str = 'human'):
@@ -237,8 +240,8 @@ class DynamicObstacleEnv(gym.Env):
             
             plt.title(f"Dynamic Obstacles (VO) Environment")
             plt.draw()
-            plt.pause(0.01)
-            # plt.pause(5)
+            # plt.pause(0.5)
+            plt.pause(5)
         
         elif mode == 'rgb_array':
             # For video recording
