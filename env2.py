@@ -170,6 +170,18 @@ class DynamicObstacleEnv(gym.Env):
     def reached_goal(self) -> bool:
         """Check if the robot has reached the goal"""
         return np.linalg.norm(self.robot_pos - self.goal_pos) < self.robot_radius
+    
+    def is_collision(self) -> bool:
+        """Check if the robot has collided with any obstacles"""
+        for i in range(self.num_obstacles):
+            dist = np.linalg.norm(self.robot_pos - self.obstacles_pos[i])
+            if dist < (self.robot_radius + self.obstacle_radius[i]):
+                return True
+        return False
+
+    def is_done(self) -> bool:
+        """Check if the episode is done"""
+        return self.is_collision() or self.reached_goal()
 
     def render_obs(self, obs):
         for i in range(len(obs)):
@@ -252,6 +264,8 @@ class DynamicObstacleEnv(gym.Env):
         if self.fig is not None:
             plt.close(self.fig)
             self.fig = None
+    
+
 
     def compute_velocity_obstacle(self, obstacle_id: int, obstacle_pos: np.ndarray, 
                                  obstacle_vel: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:

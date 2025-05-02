@@ -8,7 +8,7 @@ import copy
 
 
 
-env = DynamicObstacleEnv()
+env = DynamicObstacleEnv(dt=0.3)
 init_obs = env.reset()
 done = False
 
@@ -22,7 +22,7 @@ start_state = {
     # 'obs': init_obs,
 }
 
-time_limit = 10.0
+time_limit = 100
 render = True
 
 open_set = []
@@ -57,6 +57,7 @@ while open_set:
         break
 
     if current['time'] > time_limit:
+        print("Time limit reached!")
         break
 
     feasible_vels, feasible_actions, toward_goal_vel, toward_goal_action = env.get_reachable_velocities()
@@ -78,8 +79,7 @@ while open_set:
         # break
 
         cost = current['cost'] + (
-            np.linalg.norm(env.robot_pos - env.goal_pos) * 0.1 +
-            env.dt
+            np.linalg.norm(env.robot_pos - env.goal_pos) 
         )
         
         if not env.reached_goal() and done:
